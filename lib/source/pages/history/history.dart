@@ -3,6 +3,7 @@ import 'package:batubara/source/service/Batubara/cubit/history_cubit.dart';
 import 'package:batubara/source/widget/color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 
 class History extends StatefulWidget {
   const History({super.key});
@@ -12,6 +13,8 @@ class History extends StatefulWidget {
 }
 
 class _HistoryState extends State<History> {
+  var numberformat = NumberFormat('#,##0.00', 'ID');
+  
   @override
   void initState() {
     super.initState();
@@ -21,6 +24,7 @@ class _HistoryState extends State<History> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
         appBar: AppBar(
           backgroundColor: merah,
           centerTitle: true,
@@ -94,9 +98,18 @@ class _HistoryState extends State<History> {
                                             const Text(':', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
                                             Text('${data['speed_converter']} Hz', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
                                           ]),
+                                          TableRow(children: [
+                                            const SizedBox(
+                                              height: 25,
+                                              child: Text('Netto', style: TextStyle(fontSize: 17)),
+                                            ),
+                                            const Text(':', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                                            Text('Rp ${numberformat.format(data['netto'])}',
+                                                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                                          ]),
                                         ],
                                       ),
-                                      const SizedBox(height: 10),
+                                      const SizedBox(height: 16),
                                       SizedBox(
                                         width: MediaQuery.of(context).size.width,
                                         child: DataTable(
@@ -108,11 +121,13 @@ class _HistoryState extends State<History> {
                                             columns: const [
                                               DataColumn(label: Text('KCAL', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                                               DataColumn(label: Text('Rasio', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                                              DataColumn(label: Text('Harga', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                                             ],
                                             rows: (data['detail'] as List).map((e) {
                                               return DataRow(cells: [
                                                 DataCell(Text(e['kcal'].toString())),
                                                 DataCell(Text(e['rasio'].toString())),
+                                                DataCell(Text('Rp ${numberformat.format(e['harga']).toString()}')),
                                               ]);
                                             }).toList()),
                                       )

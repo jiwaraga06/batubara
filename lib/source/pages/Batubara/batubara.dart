@@ -22,10 +22,10 @@ class Batubara extends StatefulWidget {
 class _BatubaraState extends State<Batubara> {
   TextEditingController controllerKet = TextEditingController();
   String? valuenama, valueAll;
-  var idMesin, kapasitas, efisiensi, aktual, hz;
+  var idMesin, kapasitas, efisiensi, aktual, hz, netto;
   List<ModelDetail> details = [];
   List<ModelDetail> selectedDetail = [];
-  var subTotal, rasio, total, roundHz;
+  var subTotal, rasio, total, roundHz, roundAktual, subTotalHarga;
   onSelected(bool selected, ModelDetail tabel) async {
     setState(() {
       if (selected) {
@@ -56,7 +56,7 @@ class _BatubaraState extends State<Batubara> {
     if (kapasitas == null && efisiensi == null) {
       MyDialog.dialogAlert(context, 'ValueKapasitas atau Efisiensi Kosong');
     } else {
-      ModelDetail list = ModelDetail(0, 0, 0);
+      ModelDetail list = ModelDetail(0, 0, 0, 0);
       details.add(list);
       print(details);
       setState(() {
@@ -83,20 +83,28 @@ class _BatubaraState extends State<Batubara> {
         print("Sub Total: $subTotal");
         var bagi = kapasitas / total;
         aktual = (bagi / efisiensi) / 1000;
-        var roundAktual = double.parse(aktual.toString()).toStringAsFixed(1);
-        print("Aktual: $aktual");
+        var roundAktual = double.parse(double.parse(aktual.toString()).toStringAsFixed(1));
+        print("Aktual: $roundAktual");
         hz = (aktual * 22) / (18 / 10);
         roundHz = double.parse(hz.toString()).toStringAsFixed(1);
         NumberFormat();
         print("Hz: $roundHz");
         // print(details);
         int i = 1;
+        var estimasi_perhari = roundAktual * 24;
+        print('Estimasi Perhari: $estimasi_perhari');
         details.forEach((e) {
           // print({'seq': e.seq, 'kcal': e.kcal, 'rasio': e.rasio});
-          resultDetail.add({'seq': i++, 'kcal': e.kcal, 'rasio': e.rasio});
+          var hitungRasionTon = double.parse((e.rasio! / rasio * estimasi_perhari).toStringAsFixed(1));
+          var totalharga = (hitungRasionTon * e.harga! * 1000).toInt();
+          print("RASIO TON: $hitungRasionTon");
+          print("SUB TOTAL: $totalharga");
+          resultDetail.add({'seq': i++, 'kcal': e.kcal, 'rasio': e.rasio, 'harga': totalharga});
         });
         print(resultDetail);
-        BlocProvider.of<InsertCubit>(context).insert(idMesin, controllerKet.text, valuenama, subTotal, roundAktual, roundHz, resultDetail);
+        subTotalHarga = resultDetail.map((e) => e['harga']).fold<num>(0, (a, b) => a + b);
+        print(subTotalHarga);
+        BlocProvider.of<InsertCubit>(context).insert(idMesin, controllerKet.text, valuenama, subTotal, roundAktual, roundHz, subTotalHarga, resultDetail);
       });
     }
   }
@@ -208,6 +216,7 @@ class _BatubaraState extends State<Batubara> {
                                           if (e['kapasitas'] != null && e['efisiensi'] != null) {
                                             kapasitas = e['kapasitas'];
                                             efisiensi = e['efisiensi'] / 100;
+                                            total = 0;
                                           } else {
                                             kapasitas = e['kapasitas'];
                                             efisiensi = e['efisiensi'];
@@ -251,62 +260,78 @@ class _BatubaraState extends State<Batubara> {
                       ),
                     Container(
                       width: MediaQuery.of(context).size.width,
-                      child: DataTable(
-                          showBottomBorder: true,
-                          headingRowColor: MaterialStateProperty.resolveWith((states) => headerTabel),
-                          columns: const [
-                            DataColumn(label: Text('KCAL', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Rasio', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Sub Total', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Aksi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                          ],
-                          rows: kapasitas == null && efisiensi == null
-                              ? []
-                              : details.map((e) {
-                                  return DataRow(cells: [
-                                    DataCell(
-                                      TextFormField(
-                                          keyboardType: TextInputType.number,
-                                          initialValue: e.kcal.toString(),
-                                          onChanged: (value) {
-                                            if (value.isNotEmpty) {
-                                              setState(() {
-                                                e.kcal = int.parse(value.toString());
-                                                e.subtotal = int.parse(e.kcal.toString()) * int.parse(e.rasio.toString());
-                                                subTotal = details.map((e) => e.subtotal).fold(0, (previousValue, element) => previousValue + element!);
-                                                rasio = details.map((e) => e.rasio).fold(0, (previousValue, element) => previousValue + element!);
-                                                print(e.subtotal);
-                                              });
-                                            }
-                                          }),
-                                    ),
-                                    DataCell(
-                                      TextFormField(
-                                          keyboardType: TextInputType.number,
-                                          initialValue: e.rasio.toString(),
-                                          onChanged: (value) {
-                                            if (value.isNotEmpty) {
-                                              setState(() {
-                                                e.rasio = int.parse(value.toString());
-                                                e.subtotal = int.parse(e.kcal.toString()) * int.parse(e.rasio.toString());
-                                                subTotal = details.map((e) => e.subtotal).fold(0, (previousValue, element) => previousValue + element!);
-                                                rasio = details.map((e) => e.rasio).fold(0, (previousValue, element) => previousValue + element!);
-                                                print(e.subtotal);
-                                              });
-                                            }
-                                          }),
-                                    ),
-                                    DataCell(Text(e.subtotal.toString())),
-                                    DataCell(IconButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            onSelected(true, e);
-                                            deleteSelected();
-                                          });
-                                        },
-                                        icon: const Icon(Icons.delete_forever, color: Colors.red))),
-                                  ]);
-                                }).toList()),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                            showBottomBorder: true,
+                            headingRowColor: MaterialStateProperty.resolveWith((states) => headerTabel),
+                            columns: const [
+                              DataColumn(label: Text('KCAL', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Rasio', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Sub Total', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Harga', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Aksi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                            ],
+                            rows: kapasitas == null && efisiensi == null
+                                ? []
+                                : details.map((e) {
+                                    return DataRow(cells: [
+                                      DataCell(
+                                        TextFormField(
+                                            keyboardType: TextInputType.number,
+                                            initialValue: e.kcal.toString(),
+                                            onChanged: (value) {
+                                              if (value.isNotEmpty) {
+                                                setState(() {
+                                                  e.kcal = int.parse(value.toString());
+                                                  e.subtotal = int.parse(e.kcal.toString()) * int.parse(e.rasio.toString());
+                                                  subTotal = details.map((e) => e.subtotal).fold(0, (previousValue, element) => previousValue + element!);
+                                                  rasio = details.map((e) => e.rasio).fold(0, (previousValue, element) => previousValue + element!);
+                                                  print(e.subtotal);
+                                                });
+                                              }
+                                            }),
+                                      ),
+                                      DataCell(
+                                        TextFormField(
+                                            keyboardType: TextInputType.number,
+                                            initialValue: e.rasio.toString(),
+                                            onChanged: (value) {
+                                              if (value.isNotEmpty) {
+                                                setState(() {
+                                                  e.rasio = int.parse(value.toString());
+                                                  e.subtotal = int.parse(e.kcal.toString()) * int.parse(e.rasio.toString());
+                                                  subTotal = details.map((e) => e.subtotal).fold(0, (previousValue, element) => previousValue + element!);
+                                                  rasio = details.map((e) => e.rasio).fold(0, (previousValue, element) => previousValue + element!);
+                                                  print(e.subtotal);
+                                                });
+                                              }
+                                            }),
+                                      ),
+                                      DataCell(Text(e.subtotal.toString())),
+                                      DataCell(
+                                        TextFormField(
+                                            keyboardType: TextInputType.number,
+                                            initialValue: e.harga.toString(),
+                                            onChanged: (value) {
+                                              if (value.isNotEmpty) {
+                                                setState(() {
+                                                  e.harga = int.parse(value);
+                                                });
+                                              }
+                                            }),
+                                      ),
+                                      DataCell(IconButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              onSelected(true, e);
+                                              deleteSelected();
+                                            });
+                                          },
+                                          icon: const Icon(Icons.delete_forever, color: Colors.red))),
+                                    ]);
+                                  }).toList()),
+                      ),
                     ),
                     const SizedBox(height: 8.0),
                     const Divider(thickness: 2),
@@ -317,7 +342,8 @@ class _BatubaraState extends State<Batubara> {
                         const DataColumn(label: Text('Total', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
                         const DataColumn(label: Text(' ', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
                         DataColumn(
-                            label: Text(total == null ? '' : total.toString(), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
+                            label: Text(total == null ? ' ' : total.toString(), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
+                        const DataColumn(label: Text(' ', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
                         const DataColumn(label: Text(' ', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
                       ], rows: const []),
                     ),

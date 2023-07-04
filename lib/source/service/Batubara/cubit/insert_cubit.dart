@@ -11,7 +11,7 @@ class InsertCubit extends Cubit<InsertState> {
   final MyRepository? myRepository;
   InsertCubit({required this.myRepository}) : super(InsertInitial());
 
-  void insert(idMesin, keterangan, namaMesin, total, aktual, hz, details) async {
+  void insert(idMesin, keterangan, namaMesin, total, aktual, hz, netto, details) async {
     SharedPreferences pref =await SharedPreferences.getInstance();
     var username = pref.getString('username');
     DateTime date = DateTime.now();
@@ -23,6 +23,7 @@ class InsertCubit extends Cubit<InsertState> {
       "keterangan": "$keterangan",
       "created_by": "$username",
       "total": "$total",
+      "netto": "$netto",
       "aktual": "$aktual",
       "speed_converter": "$hz",
       "detail": details
